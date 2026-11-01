@@ -1,0 +1,23 @@
+# Maven
+target/
+*.class
+dependency-reduced-pom.xml
+
+# Logs
+*.log
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.project
+.classpath
+
+# Environment
+.env
+
+# Iceberg warehouse
+warehouse/
+
+# OS
+.DS_Store

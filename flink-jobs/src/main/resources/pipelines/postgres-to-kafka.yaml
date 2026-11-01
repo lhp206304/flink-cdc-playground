@@ -1,0 +1,29 @@
+# Flink CDC Pipeline: PostgreSQL → Kafka
+# 使用 Flink CDC 3.x Pipeline API（YAML 声明式）
+# 环境变量占位符在运行时替换
+
+source:
+  type: postgres
+  hostname: ${POSTGRES_HOST}
+  port: ${POSTGRES_PORT}
+  username: ${POSTGRES_CDC_USER}
+  password: ${POSTGRES_CDC_PASSWORD}
+  # 多表同步：public 事务表走 CDC；base.region 走 CDC 供 DWD Broadcast Join
+  # base.users 不走 CDC，由 DWD AsyncIO 直查 PG（用户会持续新增）
+  # 表名格式：database.schema.table（Flink CDC 3.x 从表名解析 database/schema）
+  tables: ecommerce.public.orders,ecommerce.public.order_items,ecommerce.public.payments,ecommerce.base.region
+  # WAL 逻辑复制槽
+  slot.name: flink_cdc_slot
+  # 使用 pgoutput 插件
+  decoding.plugin.name: pgoutput
+
+sink:
+  type: kafka
+  properties.bootstrap.servers: ${KAFKA_BOOTSTRAP_SERVERS}
+  # 表到 topic 的映射：tableId(database.schema.table) -> topic
+  # 统一使用 cdc. 前缀，便于 DWD 作业消费
+  sink.tableId-to-topic.mapping: >-
+    ecommerce.public.orders:cdc.orders;
+    ecommerce.public.order_items:cdc.order_items;
+    ecommerce.public.payments:cdc.payments;
+    ecommerce.base.region:cdc.base_region
